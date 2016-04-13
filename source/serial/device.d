@@ -27,15 +27,15 @@ DEALINGS IN THE SOFTWARE.
 // Written in D programming language
 /**
 *   Module providing instruments to work with serial port on Windows and Posix
-*   OS. SerialPort class can enumerate available serial ports (works robust only 
-*   on Windows), check available baud rates. 
-*   
+*   OS. SerialPort class can enumerate available serial ports (works robust only
+*   on Windows), check available baud rates.
+*
 *   Example:
 *   --------
 *   auto com = new SerialPort("COM1"); // ttyS0 on GNU/Linux, for instance
 *   string test = "Hello, World!";
 *   com.write(test.ptr);
-*   
+*
 *   ubyte[13] buff;
 *   com.read(buff);
 *   writeln(cast(string)buff);
@@ -50,6 +50,8 @@ import std.conv;
 import std.stdio;
 import std.string;
 import core.time;
+
+alias speed_t = size_t;
 
 version(Posix)
 {
@@ -135,7 +137,7 @@ class SpeedUnsupportedException : Exception
 
 // The members of enums should be camelCased
 // http://dlang.org/dstyle.html
-enum Parity 
+enum Parity
 {
    none,
    odd,
@@ -153,7 +155,7 @@ class ParityUnsupportedException : Exception
    }
 }
 
-enum DataBits 
+enum DataBits
 {
    data5,
    data6,
@@ -172,9 +174,9 @@ class DataBitsUnsupportedException : Exception
    }
 }
 
-enum StopBits 
+enum StopBits
 {
-   one, 
+   one,
    onePointFive,
    two
 }
@@ -193,7 +195,7 @@ class StopBitsUnsupportedException : Exception
 /**
 *   Thrown when setting up new serial port parameters has failed.
 */
-class InvalidParametersException : Exception 
+class InvalidParametersException : Exception
 {
     string port;
 
@@ -221,7 +223,7 @@ class InvalidDeviceException : Exception
 /**
 *   Thrown when trying to accept closed device.
 */
-class DeviceClosedException : Exception 
+class DeviceClosedException : Exception
 {
     @safe pure nothrow this(string file = __FILE__, size_t line = __LINE__)
     {
@@ -233,7 +235,7 @@ class DeviceClosedException : Exception
 *	Thrown when read/write operations failed due timeout.
 *
 *   Exception carries useful info about number of read/wrote bytes until
-*   timeout occurs. It takes sense only for Windows, as posix version 
+*   timeout occurs. It takes sense only for Windows, as posix version
 *   won't start reading until the port is empty.
 */
 class TimeoutException : Exception
@@ -254,7 +256,7 @@ class TimeoutException : Exception
 /**
 *   Thrown when reading from serial port is failed.
 */
-class DeviceReadException : Exception 
+class DeviceReadException : Exception
 {
     string port;
 
@@ -268,7 +270,7 @@ class DeviceReadException : Exception
 /**
 *   Thrown when writing to serial port is failed.
 */
-class DeviceWriteException : Exception 
+class DeviceWriteException : Exception
 {
     string port;
 
@@ -291,7 +293,7 @@ version(Windows)
     enum ONE5STOPBITS = 0x1;
     enum TWOSTOPBITS  = 0x2;
 
-    struct DCB 
+    struct DCB
     {
         DWORD DCBlength;
         DWORD BaudRate;
@@ -311,7 +313,7 @@ version(Windows)
         DWORD, "fRtsControl",       2,
         DWORD, "fAbortOnError",     1,
         DWORD, "fDummy2",           17));
-        
+
         WORD  wReserved;
         WORD  XonLim;
         WORD  XoffLim;
@@ -334,8 +336,8 @@ version(Windows)
     	DWORD WriteTotalTimeoutMultiplier;
     	DWORD WriteTotalTimeoutConstant;
     }
-    
-    extern(Windows) 
+
+    extern(Windows)
     {
         bool GetCommState(HANDLE hFile, DCB* lpDCB);
         bool SetCommState(HANDLE hFile, DCB* lpDCB);
@@ -347,7 +349,7 @@ version(Windows)
 *   Main class encapsulating platform dependent files handles and
 *   algorithms to work with serial port.
 *
-*   You can open serial port only once, after calling close any 
+*   You can open serial port only once, after calling close any
 *   nonstatic method will throw DeviceClosedException.
 *
 *   Note: Serial port enumerating is robust only on Windows, due
@@ -360,11 +362,11 @@ class SerialPort
     *
     *   Params:
     *   port =  Port name. On Posix, it should be reffer to device file
-    *           like /dev/ttyS<N>. On Windows, port name should be like 
+    *           like /dev/ttyS<N>. On Windows, port name should be like
     *           COM<N> or any other.
     *
     *   Throws: InvalidParametersException, InvalidDeviceException
-    *   
+    *
     */
     this(string port)
     {
@@ -376,7 +378,7 @@ class SerialPort
     *
     *   Params:
     *   port =  Port name. On Posix, it should be reffer to device file
-    *           like /dev/ttyS<N>. On Windows, port name should be like 
+    *           like /dev/ttyS<N>. On Windows, port name should be like
     *           COM<N> or any other.
     *   readTimeout  = Setups constant timeout on read operations.
     *   writeTimeout = Setups constant timeout on write operations. In posix is ignored.
@@ -389,20 +391,20 @@ class SerialPort
     	writeTimeoutConst = writeTimeout;
     	this(port);
     }
-    
+
     /**
     *   Creates new serial port instance.
     *
     *   Params:
     *   port =  Port name. On Posix, it should be reffer to device file
-    *           like /dev/ttyS<N>. On Windows, port name should be like 
+    *           like /dev/ttyS<N>. On Windows, port name should be like
     *           COM<N> or any other.
     *   readTimeoutConst  = Setups constant timeout on read operations.
     *   writeTimeoutConst = Setups constant timeout on write operations. In posix is ignored.
     *   readTimeoutMult   = Setups timeout on read operations depending on buffer size.
-    *   writeTimeoutMult  = Setups timeout on write operations depending on buffer size. 
+    *   writeTimeoutMult  = Setups timeout on write operations depending on buffer size.
     *                       In posix is ignored.
-    *   
+    *
     *   Note: Total timeout is calculated as timeoutMult*buff.length + timeoutConst.
     *   Throws: InvalidParametersException, InvalidDeviceException
     */
@@ -415,14 +417,14 @@ class SerialPort
     	this.writeTimeoutConst = writeTimeoutConst;
     	this(port);
     }
-    
+
     ~this()
     {
         close();
     }
 
     /**
-    *   Converts serial port to it port name. 
+    *   Converts serial port to it port name.
     *   Example: "ttyS0", "ttyS1", "COM1", "CNDA1".
     */
     override string toString()
@@ -431,7 +433,7 @@ class SerialPort
     }
 
     /**
-    *   Set the baud rate for this serial port. Speed values are usually 
+    *   Set the baud rate for this serial port. Speed values are usually
     *   restricted to be 1200 * i ^ 2.
     *
     *   Note: that for Posix, the specification only mandates speeds up
@@ -448,7 +450,7 @@ class SerialPort
         version(Posix)
         {
             speed_t baud = convertPosixSpeed(speed);
-            
+
             termios options;
             tcgetattr(handle, &options);
             cfsetispeed(&options, baud);
@@ -544,7 +546,7 @@ class SerialPort
    }
 
    /**
-    *   Returns current parity . 
+    *   Returns current parity .
     */
    Parity parity() @property
    {
@@ -577,7 +579,7 @@ class SerialPort
 
 
    /**
-    *  Set the number of stop bits 
+    *  Set the number of stop bits
     */
    SerialPort stopBits(StopBits stop) @property
    {
@@ -640,7 +642,7 @@ class SerialPort
       {
          DCB config;
          GetCommState(handle, &config);
-         switch (config.StopBits) 
+         switch (config.StopBits)
          {
             case ONESTOPBIT: return StopBits.one;
             default: return StopBits.two;
@@ -713,19 +715,19 @@ class SerialPort
       {
          termios options;
          tcgetattr(handle, &options);
-         if ((options.c_cflag & CS8) == CS8) 
+         if ((options.c_cflag & CS8) == CS8)
          {
             return DataBits.data8;
-         } 
-         else if ((options.c_cflag & CS7) == CS7) 
+         }
+         else if ((options.c_cflag & CS7) == CS7)
          {
             return DataBits.data7;
-         } 
-         else if ((options.c_cflag & CS6) == CS6) 
+         }
+         else if ((options.c_cflag & CS6) == CS6)
          {
             return DataBits.data6;
-         } 
-         else 
+         }
+         else
          {
             return DataBits.data5;
          }
@@ -734,7 +736,7 @@ class SerialPort
       {
          DCB config;
          GetCommState(handle, &config);
-         switch (config.ByteSize) 
+         switch (config.ByteSize)
          {
             case 5: return DataBits.data5;
             case 6: return DataBits.data6;
@@ -747,14 +749,14 @@ class SerialPort
 
    /**
     *   Iterates over all bauds rate and tries to setup port with it.
-    *   Returns: array of successfully setuped baud rates for current 
+    *   Returns: array of successfully setuped baud rates for current
     *   serial port.
     */
     BaudRate[] getBaudRates()
     {
         if (closed) throw new DeviceClosedException();
         BaudRate currSpeed = speed;
-        BaudRate[] ret; 
+        BaudRate[] ret;
         foreach(baud; __traits(allMembers, BaudRate))
         {
             auto baudRate = mixin("BaudRate."~baud);
@@ -764,7 +766,7 @@ class SerialPort
                 {
                     speed = baudRate;
                     ret ~= baudRate;
-                } 
+                }
                 catch(SpeedUnsupportedException e)
                 {
 
@@ -899,7 +901,7 @@ class SerialPort
         version(Windows)
         {
             uint written;
-            if(!WriteFile(handle, arr.ptr, 
+            if(!WriteFile(handle, arr.ptr,
                 cast(uint)arr.length, &written, null))
                     throw new DeviceWriteException(port);
             if(arr.length != written)
@@ -908,15 +910,14 @@ class SerialPort
         version(Posix)
         {
             size_t totalWritten;
-            while(totalWritten < arr.length)
-            {
-                ssize_t result = posixWrite(handle, arr[totalWritten..$].ptr, arr.length - totalWritten);
-                if(result < 0)
-                    throw new DeviceWriteException(port);
-                totalWritten += cast(size_t)result;
+            while(totalWritten < arr.length) {
+              ssize_t result = posixWrite(handle, arr[totalWritten..$].ptr, arr.length - totalWritten);
+              if(result < 0)
+                  throw new DeviceWriteException(port);
+              totalWritten += cast(size_t)result;
             }
         }
-    } 
+    }
 
     /**
     *   Fills up provided array with bytes from com port.
@@ -932,7 +933,7 @@ class SerialPort
             uint readed;
             if(!ReadFile(handle, arr.ptr, cast(uint)arr.length, &readed, null))
                 throw new DeviceReadException(port);
-            if(arr.length != readed) 
+            if(arr.length != readed)
                 throw new TimeoutException(port, cast(size_t)readed);
             return cast(size_t)readed;
         }
@@ -941,15 +942,16 @@ class SerialPort
             fd_set selectSet;
             FD_ZERO(&selectSet);
             FD_SET(handle, &selectSet);
-            
+
             Duration totalReadTimeout = arr.length * readTimeoutMult + readTimeoutConst;
 
             timeval timeout;
             timeout.tv_sec = cast(int)(totalReadTimeout.total!"seconds");
             enum US_PER_MS = 1000;
             timeout.tv_usec = cast(int)(totalReadTimeout.split().msecs * US_PER_MS);
-            
+
             auto rv = select(handle + 1, &selectSet, null, null, &timeout);
+
             if(rv == -1)
             {
                throw new DeviceReadException(port);
@@ -957,9 +959,10 @@ class SerialPort
             {
                throw new TimeoutException(port, 0);
             }
-        	
+
             ssize_t result = posixRead(handle, arr.ptr, arr.length);
-            if(result < 0) 
+
+            if(result < 0)
             {
                 throw new DeviceReadException(port);
             }
@@ -996,11 +999,11 @@ class SerialPort
 		        timeouts.WriteTotalTimeoutMultiplier = cast(DWORD)writeTimeoutMult.total!"msecs";
 		        timeouts.WriteTotalTimeoutConstant   = cast(DWORD)writeTimeoutConst.total!"msecs";
 		        import std.stdio; writeln(timeouts);
-		        if (SetCommTimeouts(handle, &timeouts) == 0) 
+		        if (SetCommTimeouts(handle, &timeouts) == 0)
 		        {
 		        	throw new InvalidParametersException(port);
 		        }
-		        
+
                 if(!SetCommState(handle, &config))
                 {
                     throw new InvalidParametersException(port);
@@ -1048,17 +1051,17 @@ class SerialPort
             	port = file;
 
                 handle = open(file.toStringz(), O_RDWR | O_NOCTTY | O_NONBLOCK);
-                if(handle == -1) 
+                if(handle == -1)
                 {
                     throw new InvalidDeviceException(file);
                 }
                 if(fcntl(handle, F_SETFL, 0) == -1)  // disable O_NONBLOCK
-                {   
+                {
                     throw new InvalidDeviceException(file);
                 }
-                
+
                 termios options;
-                if(tcgetattr(handle, &options) == -1) 
+                if(tcgetattr(handle, &options) == -1)
                 {
                     throw new InvalidDeviceException(file);
                 }
@@ -1070,7 +1073,7 @@ class SerialPort
 
             void makeRaw (ref termios options)
             {
-                options.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | 
+                options.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP |
                                      INLCR | IGNCR | ICRNL | IXON);
                 options.c_oflag &= ~OPOST;
                 options.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
@@ -1080,7 +1083,7 @@ class SerialPort
         }
 
         private static __gshared BaudRate[uint] baudRatetoUint;
-        shared static this() 
+        shared static this()
         {
             version(Windows)
             {
@@ -1091,7 +1094,7 @@ class SerialPort
                     110 : BaudRate.BR_110,
                     134 : BaudRate.BR_134,
                     150 : BaudRate.BR_150,
-                    200 : BaudRate.BR_200, 
+                    200 : BaudRate.BR_200,
                     300 : BaudRate.BR_300,
                     600 : BaudRate.BR_600,
                     1200 : BaudRate.BR_1200,
@@ -1146,10 +1149,10 @@ class SerialPort
             int handle = -1;
         version(Windows)
             HANDLE handle = null;
-            
+
         Duration readTimeoutMult;
         Duration readTimeoutConst;
         Duration writeTimeoutMult;
         Duration writeTimeoutConst;
-    }   
+    }
 }
